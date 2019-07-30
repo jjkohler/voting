@@ -318,7 +318,7 @@ map.setFeatureState({source: 'electoral', sourceLayer:'2000_Electoral', id: hove
 hoveredStateId =  null;
 });
 
-function addMobilePitchGesture(mbMap) {
+function addMobilePitchGesture(votemap) {
   const minDiffX = 70; // min x distance to recognize pitch gesture
   const maxDiffY = 100; // max y distance to recognize pitch gesture
   const minDiff = 30; // min distance to recognize zoom gesture
@@ -330,17 +330,17 @@ function addMobilePitchGesture(mbMap) {
   let startDistance;
   let startEventData;
 
-  mbMap
+  votemap
     .on("touchstart", data => {
       if (data.points.length === 2) {
         const diffY = data.points[0].y - data.points[1].y;
         const diffX = data.points[0].x - data.points[1].x;
         if (Math.abs(diffX) >= minDiffX && Math.abs(diffY) <= maxDiffY) {
           data.originalEvent.preventDefault(); // prevent browser refresh on pull down
-          mbMap.touchZoomRotate.disable(); // disable native touch controls
-          mbMap.dragPan.disable();
+          votemap.touchZoomRotate.disable(); // disable native touch controls
+          votemap.dragPan.disable();
           dpPoint = data.point;
-          dpPitch = mbMap.getPitch();
+          dpPitch = votemap.getPitch();
           startTiming = Date.now();
           startDistance = Math.hypot(diffX, diffY);
           startEventData = data;
@@ -358,9 +358,9 @@ function addMobilePitchGesture(mbMap) {
 
         if (Math.abs(distance - startDistance) >= minDiff) {
           if (dpPoint) {
-            mbMap.touchZoomRotate.enable();
-            mbMap.dragPan.enable();
-            mbMap.touchZoomRotate.onStart(
+            votemap.touchZoomRotate.enable();
+            votemap.dragPan.enable();
+            votemap.touchZoomRotate.onStart(
               Date.now() - startTiming >= delay
                 ? data.originalEvent
                 : startEventData.originalEvent
@@ -372,21 +372,21 @@ function addMobilePitchGesture(mbMap) {
 
         if (Date.now() - startTiming >= delay) {
           const diff = (dpPoint.y - data.point.y) * 0.5;
-          mbMap.setPitch(dpPitch + diff);
+          votemap.setPitch(dpPitch + diff);
         }
       }
     })
     .on("touchend", () => {
       if (dpPoint) {
-        mbMap.touchZoomRotate.enable();
-        mbMap.dragPan.enable();
+        votemap.touchZoomRotate.enable();
+        votemap.dragPan.enable();
       }
       dpPoint = undefined;
     })
     .on("touchcancel", () => {
       if (dpPoint) {
-        mbMap.touchZoomRotate.enable();
-        mbMap.dragPan.enable();
+        votemap.touchZoomRotate.enable();
+        votemap.dragPan.enable();
       }
       dpPoint = undefined;
     });
