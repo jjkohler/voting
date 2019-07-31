@@ -5,6 +5,7 @@
 <title>Display a map</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 <script src='mapbox-gl.js'></script>
+<script type="module" src='mapbox-glExtras.js'></script>
 <link href='mapbox-gl.css' rel='stylesheet' />
 
 <style>
@@ -79,7 +80,7 @@ p {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   height: 100px;
   margin-bottom: 40px;
-  width: 300px;
+  width: 340px;
 }
 
 #legend {
@@ -137,6 +138,7 @@ p {
 <input id='slider' type='range' list="tickmarks" min='2000' max='2016' step='4' value='2000' >
 <output for="slider" id="Election">2000</output>
 <button class="button button4" onclick="Advance()">Play</button>
+<button class="button button4" onclick="StopFunction()">Stop</button>
 </div>
 
 
@@ -147,7 +149,7 @@ var map = new mapboxgl.Map({
 container: 'map', // container id
 style: 'mapbox://styles/jjkoher/cjyj6qgen19td1cno5sf4bpke', // stylesheet location
 center: [-95.915, 38.573], // starting position [lng, lat],
-pitch: 45,
+//pitch: 45,
 zoom: 4 // starting zoom
 });
 var Year = "2000";
@@ -213,6 +215,17 @@ for (i = 0; i < layers.length; i++) {
   legend.appendChild(item);
 }
 
+ setTimeout(() => {
+    map.easeTo({
+      duration: 3000,
+      pitch: 45,
+      bearing: 0,
+      easing: (t) => {
+        return t * (2 - t);
+      }
+    });
+  }, 1500)
+
 });
 
 
@@ -252,7 +265,8 @@ document.getElementById('slider').addEventListener('input', function(e) {
 Year = e.target.value
 outputUpdate(Year)
 //console.log(Year)
-load_map(Year);
+load_map(Year)
+textEvent();
 });
 
 
@@ -260,6 +274,10 @@ var time_step;
 
 function Advance() {
   time_step = setInterval(Step, 1500);
+}
+
+function StopFunction() {
+  clearInterval(time_step);
 }
 
 function Step() {
@@ -279,13 +297,19 @@ function StopFunction() {
 //document.getElementById('slider').value
 //document.getElementById('slider').dispatchEvent(new Event('input'))
 
-
+var mouseLocation = null
 map.on('mousemove', function(e) {
-  var counties = map.queryRenderedFeatures(e.point, {
+  mouseLocation = e.point
+  textEvent()
+});
+  
+function textEvent() { 
+  var counties = map.queryRenderedFeatures(mouseLocation, {
     layers: ['votemap']
   });
 
   if (counties.length > 0) {
+  console.log(Year),
     document.getElementById('pd').innerHTML = '<h3><strong>' + counties[0].properties.NAMELSAD10 +', ' + counties[0].properties.STCODE + 
 	'</strong></h3><p><strong><em>' + (counties[0].properties[Year]*100).toFixed(2) + 
 	'</strong>% Democratic vote</em></p>';
@@ -293,7 +317,8 @@ map.on('mousemove', function(e) {
   } else {
     document.getElementById('pd').innerHTML = '<p>Hover over a county!</p>';
   }
-});
+ }
+
 
 
 
@@ -318,79 +343,7 @@ map.setFeatureState({source: 'electoral', sourceLayer:'2000_Electoral', id: hove
 hoveredStateId =  null;
 });
 
-function addMobilePitchGesture(votemap) {
-  const minDiffX = 70; // min x distance to recognize pitch gesture
-  const maxDiffY = 100; // max y distance to recognize pitch gesture
-  const minDiff = 30; // min distance to recognize zoom gesture
-  const delay = 160; // delay for pitch, in case it's a zoom gesture
 
-  let dpPoint;
-  let dpPitch;
-  let startTiming;
-  let startDistance;
-  let startEventData;
-
-  votemap
-    .on("touchstart", data => {
-      if (data.points.length === 2) {
-        const diffY = data.points[0].y - data.points[1].y;
-        const diffX = data.points[0].x - data.points[1].x;
-        if (Math.abs(diffX) >= minDiffX && Math.abs(diffY) <= maxDiffY) {
-          data.originalEvent.preventDefault(); // prevent browser refresh on pull down
-          votemap.touchZoomRotate.disable(); // disable native touch controls
-          votemap.dragPan.disable();
-          dpPoint = data.point;
-          dpPitch = votemap.getPitch();
-          startTiming = Date.now();
-          startDistance = Math.hypot(diffX, diffY);
-          startEventData = data;
-        }
-      }
-    })
-    .on("touchmove", data => {
-      if (dpPoint !== undefined && dpPitch !== undefined) {
-        data.preventDefault();
-        data.originalEvent.preventDefault();
-
-        const diffY = data.points[0].y - data.points[1].y;
-        const diffX = data.points[0].x - data.points[1].x;
-        const distance = Math.hypot(diffX, diffY);
-
-        if (Math.abs(distance - startDistance) >= minDiff) {
-          if (dpPoint) {
-            votemap.touchZoomRotate.enable();
-            votemap.dragPan.enable();
-            votemap.touchZoomRotate.onStart(
-              Date.now() - startTiming >= delay
-                ? data.originalEvent
-                : startEventData.originalEvent
-            );
-          }
-          dpPoint = undefined;
-          return;
-        }
-
-        if (Date.now() - startTiming >= delay) {
-          const diff = (dpPoint.y - data.point.y) * 0.5;
-          votemap.setPitch(dpPitch + diff);
-        }
-      }
-    })
-    .on("touchend", () => {
-      if (dpPoint) {
-        votemap.touchZoomRotate.enable();
-        votemap.dragPan.enable();
-      }
-      dpPoint = undefined;
-    })
-    .on("touchcancel", () => {
-      if (dpPoint) {
-        votemap.touchZoomRotate.enable();
-        votemap.dragPan.enable();
-      }
-      dpPoint = undefined;
-    });
-}
 
 </script> 
  
