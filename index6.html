@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>Display a map</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='mapbox-gl.js'></script>
+<link href='mapbox-gl.css' rel='stylesheet' />
+
+<style>
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+h2,
+h3 {
+  margin: 10px;
+  font-size: 1.2em;
+}
+
+h3 {
+  font-size: 1em;
+}
+
+p {
+  font-size: 0.85em;
+  margin: 10px;
+  text-align: left;
+}
+
+/**
+* Create a position for the map
+* on the page */
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+/**
+* Set rules for how the map overlays
+* (information box and legend) will be displayed
+* on the page. */
+.map-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.8);
+  margin-right: 20px;
+  font-family: Arial, sans-serif;
+  overflow: auto;
+  border-radius: 3px;
+}
+
+.map-overlay2 {
+  position: absolute;
+  bottom: 0;
+  left: 10;
+  background: rgba(255, 255, 255, 0.8);
+  margin-left: 20px;
+  font-family: Arial, sans-serif;
+  overflow: auto;
+  border-radius: 3px;
+}
+
+#features {
+  top: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 100px;
+  margin-top: 20px;
+  width: 250px;
+}
+
+#slider-feature {
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 100px;
+  margin-bottom: 40px;
+  width: 340px;
+}
+
+
+.button {
+  background-color: #008CBA;
+  border: none;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+.button1 {border-radius: 2px;}
+.button2 {border-radius: 4px;}
+.button3 {border-radius: 8px;}
+.button4 {border-radius: 12px;}
+.button5 {border-radius: 50%;}
+
+</style>
+</head>
+<body>
+ <datalist id="tickmarks">
+  <option value="Num1">
+  <option value="Num2">
+  <option value="Num3">
+
+</datalist>
+<div id='map'></div>
+<div class='map-overlay' id='features'><h2>US Precincts</h2><div id='pd'><p>Hover over a precinct!</p></div></div>
+<div class='map-overlay' id='legend'></div>
+
+<div class='map-overlay2' id='slider-feature'>
+<h2>Some Random Numbers</h2>
+<label for='slider'>Year</label>
+
+
+<input id='slider' type='range' list="tickmarks" min='1' max='3' value='2' step='1' >
+<output for="slider" id="Election">Num1</output>
+<button class="button button4" onclick="Advance()">Play</button>
+<button class="button button4" onclick="StopFunction()">Stop</button>
+</div>
+
+
+
+<script>
+
+
+
+
+mapboxgl.accessToken = 'pk.eyJ1Ijoiamprb2hlciIsImEiOiJjanhtM3JncHIwMjY4M3BtbXV0Z2dvZzg0In0._o4vt3R-MDgSonaoHMmk8w';
+var map = new mapboxgl.Map({
+container: 'map', // container id
+style: 'mapbox://styles/jjkoher/cjy7cezat2fl81coxwgt2nfi6', // stylesheet location
+center: [-95.915, 38.573], // starting position [lng, lat]
+
+zoom: 4 // starting zoom
+});
+var Year = "Num2";
+var hoveredStateId =  null;
+;
+function outputUpdate(yr) {
+	document.querySelector('#Election').value = yr;
+}
+
+
+map.on('load', function(){map.addSource('voting', {
+'type': 'vector',
+'url': 'mapbox://jjkoher.ddodzvta'
+//'generateId': true
+});
+
+map.addLayer({
+'id': 'votemap',
+'source': 'voting',
+'source-layer': 'CUsersjaredDesktopEarth_Timenation_precinct',
+'type': 'fill',
+'paint': {
+'fill-color': createFillColor('Num2'),
+"fill-opacity": ["case",
+["boolean", ["feature-state", "hover"], false],
+.2,
+1
+]
+}
+}, 'waterway-label');
+
+for (i = 0; i < layers.length; i++) {
+  var layer = layers[i];
+  var color = colors[i];
+  var item = document.createElement('div');
+  var key = document.createElement('span');
+  key.className = 'legend-key';
+  key.style.backgroundColor = color;
+
+  var value = document.createElement('span');
+  value.innerHTML = layer;
+  item.appendChild(key);
+  item.appendChild(value);
+  legend.appendChild(item);
+}
+
+});
+
+
+
+function createFillColor(year) {
+if ((year == 'Num1') || (year == 'Num2'))	{
+return [
+  "step",
+  ["get", year],
+  "hsl(0, 82%, 44%)",
+  25,
+  "hsl(112, 37%, 57%)",
+  50,
+  "hsl(206, 49%, 49%)",
+  75,
+  "hsl(305, 62%, 77%)",
+  100,
+  "#000000"
+];}
+else {
+return [
+  "interpolate",
+  ["linear"],
+  ["get", year],
+  26565,
+  "hsl(0, 82%, 44%)",
+  47816,
+  "hsl(180, 28%, 56%)",
+  69066,
+  "hsl(206, 49%, 49%)",
+  86333,
+  "hsl(0, 44%, 92%)",
+  103599,
+  "hsl(313, 68%, 43%)",
+  120866,
+  "hsl(33, 93%, 55%)",
+  138132,
+  "hsl(134, 54%, 43%)",
+  164696,
+  "hsl(29, 25%, 51%)",
+  191259,
+  "hsl(0, 0%, 0%)"
+];
+
+}
+}
+
+function load_map(Year) {
+map.setPaintProperty('votemap', 'fill-color', createFillColor(Year));
+
+
+
+}
+
+
+document.getElementById('slider').addEventListener('input', function(e) {
+Year = 'Num'.concat(String(e.target.value))
+outputUpdate(Year)
+//console.log(Year)
+load_map(Year);
+});
+
+
+var time_step;
+
+
+
+function Advance() {
+  time_step = setInterval(Step, 3000);
+}
+
+function Step() {
+  if (parseInt(document.getElementById('slider').value)< 3) {
+  document.getElementById('slider').value=(String(parseInt(document.getElementById('slider').value)+1));
+  document.getElementById('slider').dispatchEvent(new Event('input'))
+  console.log("It worked");
+  } else {
+  document.getElementById('slider').value="1";
+  document.getElementById('slider').dispatchEvent(new Event('input'))
+  }
+}
+
+function StopFunction() {
+  clearInterval(time_step);
+}
+//document.getElementById('slider').value
+//document.getElementById('slider').dispatchEvent(new Event('input'))
+
+
+map.on('mousemove', function(e) {
+  var counties = map.queryRenderedFeatures(e.point, {
+    layers: ['votemap']
+  });
+
+  if (counties.length > 0) {
+    document.getElementById('pd').innerHTML = '<h3><strong>' + counties[0].properties.NAMELSAD10 +', ' + counties[0].properties.STCODE + 
+	'</strong></h3><p><strong><em>' + (counties[0].properties[Year]*100).toFixed(2) + 
+	'</strong>% Democratic vote</em></p>';
+
+  } else {
+    document.getElementById('pd').innerHTML = '<p>Hover over a precinct!</p>';
+  }
+});
+
+
+
+// When the user moves their mouse over the state-fill layer, we'll update the
+// feature state for the feature under the mouse.
+map.on("mousemove", "votemap", function(e) {
+if (e.features.length > 0) {
+if (hoveredStateId) {
+map.setFeatureState({source: 'voting', sourceLayer:'2000_2016', id: hoveredStateId}, { hover: false});
+}
+hoveredStateId = e.features[0].id;
+map.setFeatureState({source: 'voting', sourceLayer:'2000_2016', id: hoveredStateId}, { hover: true});
+}
+});
+ 
+// When the mouse leaves the state-fill layer, update the feature state of the
+// previously hovered feature.
+map.on("mouseleave", "votemap", function() {
+if (hoveredStateId) {
+map.setFeatureState({source: 'voting', sourceLayer:'2000_2016', id: hoveredStateId}, { hover: false});
+}
+hoveredStateId =  null;
+});
+
+</script> 
+ 
+ 
+</body>
+</html>
