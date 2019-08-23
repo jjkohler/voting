@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>Display a map</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='mapbox-gl.js'></script>
+<link href='mapbox-gl.css' rel='stylesheet' />
+
+<style>
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+h2,
+h3 {
+  margin: 10px;
+  font-size: 1.2em;
+}
+
+h3 {
+  font-size: 1em;
+}
+
+p {
+  font-size: 0.85em;
+  margin: 10px;
+  text-align: left;
+}
+
+/**
+* Create a position for the map
+* on the page */
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+/**
+* Set rules for how the map overlays
+* (information box and legend) will be displayed
+* on the page. */
+.map-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.8);
+  margin-right: 20px;
+  font-family: Arial, sans-serif;
+  overflow: auto;
+  border-radius: 3px;
+}
+
+.map-overlay2 {
+  position: absolute;
+  bottom: 0;
+  left: 10;
+  background: rgba(255, 255, 255, 0.8);
+  margin-left: 20px;
+  font-family: Arial, sans-serif;
+  overflow: auto;
+  border-radius: 3px;
+}
+
+#features {
+  top: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 150px;
+  margin-top: 20px;
+  width: 250px;
+}
+
+#features2 {
+  top: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 180px;
+  margin-top: 20px;
+  width: 250px;
+
+}
+
+#slider-feature {
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 100px;
+  margin-bottom: 40px;
+  width: 340px;
+}
+
+#legend {
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  line-height: 18px;
+  height: 80px;
+  margin-bottom: 40px;
+  width: 60px;
+}
+
+.legend-key {
+  display: inline-block;
+  border-radius: 20%;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+}
+.button {
+  background-color: #008CBA;
+  border: none;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+.button1 {border-radius: 2px;}
+.button2 {border-radius: 4px;}
+.button3 {border-radius: 8px;}
+.button4 {border-radius: 12px;}
+.button5 {border-radius: 50%;}
+
+</style>
+</head>
+<body>
+ <datalist id="tickmarks">
+  <option value="1984">
+  <option value="1988">
+  <option value="1992">
+  <option value="1996">
+  <option value="2000">
+  <option value="2004">
+  <option value="2008">
+  <option value="2012">
+  <option value="2016">
+</datalist>
+<div id='map'></div>
+<div class='map-overlay' id='features'><h2>US Counties</h2><div id='pd'><p>Hover over a county!</p></div></div>
+<div class='map-overlay2' id='features2'><h2>Candidates</h2><div id='can'><p></p></div></div>
+<div class='map-overlay' id='legend'></div>
+
+<div class='map-overlay2' id='slider-feature'>
+<h2>County Third Party Percentages</h2>
+<label for='slider'>Year</label>
+<input id='slider' type='range' list="tickmarks" min='1984' max='2016' step='4' value='1984' >
+<output for="slider" id="Election">1984</output>
+<button class="button button4" onclick="Advance()">Play</button>
+<button class="button button4" onclick="StopFunction()">Stop</button>
+</div>
+
+
+
+<script>
+
+mapboxgl.accessToken = 'pk.eyJ1Ijoiamprb2hlciIsImEiOiJjanhtM3JncHIwMjY4M3BtbXV0Z2dvZzg0In0._o4vt3R-MDgSonaoHMmk8w';
+var map = new mapboxgl.Map({
+container: 'map', // container id
+style: 'mapbox://styles/jjkoher/cjyj6qgen19td1cno5sf4bpke', // stylesheet location
+center: [-95.915, 38.573], // starting position [lng, lat],
+//pitch: 45,
+zoom: 4 // starting zoom
+});
+var Year = "1984";
+var Year_D = "1984D"
+var Year_R = "1984R"
+var Year_O = "1984O" 
+var Year_pct = "1984%DR";
+const Winner = ["(R) Ronald Reagan 58.77%", "(R) George H. W. Bush 53.37%", "(D) Bill Clinton 43.01%", "(D) Bill Cliton 49.24%", 
+"(R) George W. Bush 47.87%", "(R) George W. Bush 50.73%","(D) Barak Obama 52.93%","(D) Barak Obama 51.19%", "(R) Donald Trump 46.09%"];
+
+const Loser = ["(D) Walter Mondale 40.56%", "(D) Michael Dukakis 45.65%", "(R) George H. W. Bush 37.45%", "(R) Bob Dole 40.71%", "(D) Al Gore 48.38%",
+"(D) John Kerry 48.27%", "(R) John McCain 45.65%", "(R) Mitt Romney 47.32%", "(D) Hillary Clinton 48.18%"]
+
+const Third = ["(L) David Bergland 0.25%","(L) Ron Paul 0.47%","(I) Ross Perot 18.91%", "(I) Ross Perot 8.40%", 
+"(G) Ralph Nader 2.74%", "(I) Ralph Nader 0.38%", "(I) Ralph Nader 0.56%", "(L) Gary Johnson 0.99%", "(L) Gary Johnson 3.28%"]
+
+const Fourth = [/*"(I) Lyndon LaRouche 0.09%*/"",/*"Lenora Fulani 0.24%*/"","(L) Andre Marrou 0.28%","(G) Ralph Nader 0.71%",
+"(RP) Pat Buchanan 0.43%","(L) Michael Badnarik 0.32%", "(L) Bob Barr 0.40%","(G) Jill Stein 0.36%","(G) Jill Stein 1.07%"]
+
+const Fifth = [/*"(CZ) Sonia Johnson 0.08%*/"","",/*"(P) Bo Gritz 0.10%*/"","(L) Harry Browne 0.50%","(L) Harry Browne 0.36%",
+/*"(C) Michael Peroutka 0.12%*/"",/*"(C) Chuck Baldwin 0.15%*/"",/*"(C) Virgil Goode 0.09%*/"","(I) Evan McMullin 0.54%"]
+
+var hoveredStateId =  null;
+var layers = ['0%', '15%', '30%', '45%'];
+var colors = [ "hsl(123, 76%, 100%)",
+  "hsl(123, 76%, 35%)",
+  "hsl(38, 93%, 35%)",
+  "hsl(298, 93%, 30%)"
+];
+function outputUpdate(yr) {
+	document.querySelector('#Election').value = yr;
+}
+Candidates(Year)
+addMobilePitchGesture(map)
+map.addControl(new mapboxgl.FullscreenControl());
+map.addControl(new mapboxgl.NavigationControl());
+
+map.on('load', function(){map.addSource('electoral', {
+'type': 'vector',
+'url': 'mapbox://jjkoher.7bcyfk1i'
+//'generateId': true
+});
+
+map.addLayer({
+'id': 'votemap',
+'source': 'electoral',
+'source-layer': '2016_1984',
+'type': 'fill-extrusion',
+'paint': {
+'fill-extrusion-color': ["case",
+["boolean", ["feature-state", "hover"], false],
+'hsl(49, 80%, 59%)',
+['match', ['feature-state', 'change_year'],
+"1984", createFillColor("1984","1984O"),
+"1988", createFillColor("1988","1988O"),
+"1992", createFillColor("1992", "1992O"),
+"1996", createFillColor("1996", "1996O"),
+"2000", createFillColor("2000", "2000O"),
+"2004",createFillColor("2004", "2004O"),
+"2008",createFillColor("2008", "2008O"),
+"2012",createFillColor("2012", "2012O"),
+"2016",createFillColor("2016", "2016O"),
+createFillColor("1984", "1984O")
+]
+],
+'fill-extrusion-height': ['match', ['feature-state', 'change_year'],
+"1984", SetHeight("1984O"),
+"1988", SetHeight("1988O"),
+"1992", SetHeight("1992O"),
+"1996", SetHeight("1996O"),
+"2000", SetHeight("2000O"),
+"2004",SetHeight("2004O"),
+"2008",SetHeight("2008O"),
+"2012",SetHeight("2012O"),
+"2016",SetHeight("2016O"),
+SetHeight("1984O")
+],
+"fill-extrusion-opacity": 0.9
+}
+}, 'admin-1-boundary');
+
+for (i = 0; i < layers.length; i++) {
+  var layer = layers[i];
+  var color = colors[i];
+  var item = document.createElement('div');
+  var key = document.createElement('span');
+  key.className = 'legend-key';
+  key.style.backgroundColor = color;
+
+  var value = document.createElement('span');
+  value.innerHTML = layer;
+  item.appendChild(key);
+  item.appendChild(value);
+  legend.appendChild(item);
+}
+
+ setTimeout(() => {
+    map.easeTo({
+      duration: 3000,
+      pitch: 45,
+      bearing: 0,
+      easing: (t) => {
+        return t * (2 - t);
+      }
+    });
+  }, 1500)
+
+});
+
+
+function createFillColor(bar, baro) {
+console.log("colors are happening", bar, baro)
+	return [
+  "interpolate",
+  ["linear"],
+  ["/",["number",["get", baro]], ["number",["get", bar]]],
+  0,
+  "hsl(123, 76%, 100%)",
+  0.15,
+  "hsl(123, 76%, 35%)",
+  0.3,
+  "hsl(38, 93%, 25%)",
+  0.45,
+  "hsl(298, 93%, 20%)"
+
+];
+}
+
+function SetHeight(yrH) {
+	return [
+  "interpolate",
+  ["linear"],
+  ["get", yrH],
+  0,
+  20,
+  300000,
+  1000000
+];
+}
+function Candidates(Year) {
+
+ document.getElementById('can').innerHTML = 
+	'<p><strong>' + Winner[(parseInt(Year)-1984)/4] + 
+	'</strong></p>'+ 
+	'<p><em>' + Loser[(parseInt(Year)-1984)/4] + 
+	'</p>'+ 
+	'<p>' + Third[(parseInt(Year)-1984)/4] + 
+	'</p>'+ 
+	'<p>' + Fourth[(parseInt(Year)-1984)/4] + 
+	'</p>'+ 
+	'<p>' + Fifth[(parseInt(Year)-1984)/4] + 
+	'</em></p>';
+
+}
+
+function ChangeLayer() {
+	console.log(Year);
+    highlightedFeatures = map.querySourceFeatures('electoral', {
+      sourceLayer: '2016_1984'
+    }); 
+
+    highlightedFeatures.forEach(function(f) { 
+ map.setFeatureState({
+        source: 'electoral',
+        sourceLayer: '2016_1984',
+        id: f.id
+      }, {
+        change_year: Year
+      });
+ });
+}
+//
+//function load_map() {
+//map.setPaintProperty('votemap', 'fill-extrusion-color', ["case",
+//["boolean", ["feature-state", "hover"], false],
+//'hsl(49, 80%, 59%)',
+//createFillColor(Year_pct)
+//]);
+//map.setPaintProperty('votemap', 'fill-extrusion-height', [
+//  "interpolate",
+//  ["linear"],
+//  ["get", Year],
+//  0,
+//  500,
+//  3434308,
+//  2000000
+//]
+//);
+///
+
+
+//}
+
+
+document.getElementById('slider').addEventListener('input', function(e) {
+Year = e.target.value
+Year_pct = String(e.target.value).concat('%DR')
+Year_D = String(e.target.value).concat('D')
+Year_R = String(e.target.value).concat('R')
+Year_O = String(e.target.value).concat('O')
+outputUpdate(Year)
+ChangeLayer(Year) 
+Candidates(Year)
+console.log(Year, "It better change")
+//load_map(Year_pct, Year)
+textEvent();
+
+/*map.setPaintProperty('votemap', 'fill-extrusion-height', [
+  "interpolate",
+  ["linear"],
+  ["get", Year],
+  0,
+  500,
+  3434308,
+  2000000
+]
+);
+*/
+});
+
+
+var time_step;
+
+function Advance() {
+  time_step = setInterval(Step, 500);
+}
+
+function StopFunction() {
+  clearInterval(time_step);
+}
+
+function Step() {
+  if (parseInt(document.getElementById('slider').value)< 2016) {
+  document.getElementById('slider').value=(String(parseInt(document.getElementById('slider').value)+4));
+  document.getElementById('slider').dispatchEvent(new Event('input'))
+  console.log("It worked");
+  } else {
+  document.getElementById('slider').value="1984";
+  document.getElementById('slider').dispatchEvent(new Event('input'))
+  }
+}
+
+function StopFunction() {
+  clearInterval(time_step);
+}
+//document.getElementById('slider').value
+//document.getElementById('slider').dispatchEvent(new Event('input'))
+
+var mouseLocation = null
+map.on('mousemove', function(e) {
+  mouseLocation = e.point
+  textEvent()
+});
+  
+function textEvent() { 
+  var counties = map.queryRenderedFeatures(mouseLocation, {
+    layers: ['votemap']
+  });
+
+  if (counties.length > 0) {
+  console.log(Year),
+    document.getElementById('pd').innerHTML = '<h3><strong>' + counties[0].properties.NAMELSAD10 +', ' + counties[0].properties.STCODE + 
+	'</strong></h3><p><strong><em>' + (counties[0].properties[Year_D]/counties[0].properties[Year]*100).toFixed(2) + 
+	'</strong>% Democratic vote</em></p>'+ 
+	'</strong></h3><p><strong><em>' + (counties[0].properties[Year_R]/counties[0].properties[Year]*100).toFixed(2) + 
+	'</strong>% Republican vote</em></p>'+ 
+	'</strong></h3><p><strong><em>' + (counties[0].properties[Year_O]/counties[0].properties[Year]*100).toFixed(2) + 
+	'</strong>% Other vote</em></p>';
+
+  } else {
+    document.getElementById('pd').innerHTML = '<p>Hover over a county!</p>';
+  }
+ }
+
+
+
+
+// When the user moves their mouse over the state-fill layer, we'll update the
+// feature state for the feature under the mouse.
+map.on("mousemove", "votemap", function(e) {
+if (e.features.length > 0) {
+if (hoveredStateId) {
+map.setFeatureState({source: 'electoral', sourceLayer:'2016_1984', id: hoveredStateId}, { hover: false});
+}
+hoveredStateId = e.features[0].id;
+map.setFeatureState({source: 'electoral', sourceLayer:'2016_1984', id: hoveredStateId}, { hover: true});
+}
+});
+ 
+// When the mouse leaves the state-fill layer, update the feature state of the
+// previously hovered feature.
+map.on("mouseleave", "votemap", function() {
+if (hoveredStateId) {
+map.setFeatureState({source: 'electoral', sourceLayer:'2016_1984', id: hoveredStateId}, { hover: false});
+}
+hoveredStateId =  null;
+});
+
+function addMobilePitchGesture(mbMap) {
+  const minDiffX = 70; // min x distance to recognize pitch gesture
+  const maxDiffY = 100; // max y distance to recognize pitch gesture
+  const minDiff = 30; // min distance to recognize zoom gesture
+  const delay = 160; // delay for pitch, in case it's a zoom gesture
+
+  let dpPoint;
+  let dpPitch;
+  let startTiming;
+  let startDistance;
+  let startEventData;
+
+  mbMap
+    .on("touchstart", data => {
+      if (data.points.length === 2) {
+        const diffY = data.points[0].y - data.points[1].y;
+        const diffX = data.points[0].x - data.points[1].x;
+        if (Math.abs(diffX) >= minDiffX && Math.abs(diffY) <= maxDiffY) {
+          data.originalEvent.preventDefault(); // prevent browser refresh on pull down
+          mbMap.touchZoomRotate.disable(); // disable native touch controls
+          mbMap.dragPan.disable();
+          dpPoint = data.point;
+          dpPitch = mbMap.getPitch();
+          startTiming = Date.now();
+          startDistance = Math.hypot(diffX, diffY);
+          startEventData = data;
+        }
+      }
+    })
+    .on("touchmove", data => {
+      if (dpPoint !== undefined && dpPitch !== undefined) {
+        data.preventDefault();
+        data.originalEvent.preventDefault();
+
+        const diffY = data.points[0].y - data.points[1].y;
+        const diffX = data.points[0].x - data.points[1].x;
+        const distance = Math.hypot(diffX, diffY);
+
+        if (Math.abs(distance - startDistance) >= minDiff) {
+          if (dpPoint) {
+            mbMap.touchZoomRotate.enable();
+            mbMap.dragPan.enable();
+            mbMap.touchZoomRotate.onStart(
+              Date.now() - startTiming >= delay
+                ? data.originalEvent
+                : startEventData.originalEvent
+            );
+          }
+          dpPoint = undefined;
+          return;
+        }
+
+        if (Date.now() - startTiming >= delay) {
+          const diff = (dpPoint.y - data.point.y) * 0.5;
+          mbMap.setPitch(dpPitch + diff);
+        }
+      }
+    })
+    .on("touchend", () => {
+      if (dpPoint) {
+        mbMap.touchZoomRotate.enable();
+        mbMap.dragPan.enable();
+      }
+      dpPoint = undefined;
+    })
+    .on("touchcancel", () => {
+      if (dpPoint) {
+        mbMap.touchZoomRotate.enable();
+        mbMap.dragPan.enable();
+      }
+      dpPoint = undefined;
+    });
+}
+
+
+</script> 
+ 
+ 
+</body>
+</html>
